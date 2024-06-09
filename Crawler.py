@@ -59,7 +59,7 @@ class Crawler:
 				self.tree.create_node(link, link, parent_node)
 	
 	def get_seed():
-		next(iter(self.tree.expand_tree(filter=lambda node: self.tree.depth(node) == 0)))
+		return next(iter(self.tree.expand_tree(filter=lambda node: self.tree.depth(node) == 0)))
 			
 	def search(self, depth, include_relative, include_external, verbose):
 		
