@@ -1,5 +1,13 @@
 import grequests
-from Crawler import Crawler, BeautifulSoup, deque
+from Crawler import Crawler, BeautifulSoup, deque, logger
+
+import resource
+resource.setrlimit(resource.RLIMIT_NOFILE, (110000, 110000))
+# The above two lines should fix 'too many open files' error
+
+def exception_handler(request, exception):
+	logger.critical(f'Fatal error occured. Error: -->  {exception}  <--')
+	print(f'Fatal error occured. Error: -->  {exception}  <--')
 
 class CrawlerAsync(Crawler):
 	
@@ -23,6 +31,7 @@ class CrawlerAsync(Crawler):
 		
 		leaves = deque(node for node in self.tree.leaves())
 		
+		
 		if len(leaves) == 1:
 			floor = [next(iter(leaves)).identifier]
 			next_floor = deque()
@@ -37,15 +46,19 @@ class CrawlerAsync(Crawler):
 			
 		for d in range(depth):
 			pending_leaves = (grequests.get(u) for u in floor)
-			responses = grequests.imap_enumerated(pending_leaves)
+			responses = grequests.imap_enumerated(pending_leaves, exception_handler=exception_handler)
 			for index, child in responses:
 				child_url = floor[index]
-				childs = self.fetch_links(child_url, include_relative, include_external, child)
-				self.add_children(childs, child_url)
+				try:
+					childs = self.fetch_links(child_url, include_relative, include_external, child)
+					self.add_children(childs, child_url)
 				
-				if verbose:
-					print(f"Completed: {child_url}\nLinks added: {len(childs)}")
+					if verbose:
+						print(f"Completed: {child_url}\nLinks added: {len(childs)}")
 				
-				next_floor.extend(childs)
+					next_floor.extend(childs)
+				except Exception as e:
+					logger.error(f'Could not add children for {child_url} due to Error: -->  {e}  <--')
+					
 			floor = next_floor
 			next_floor = deque()

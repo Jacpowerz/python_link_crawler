@@ -6,7 +6,11 @@ def json_to_dict(json_file):
 		data = json.loads(f.read())
 	return data
 
-def dict_to_tree(data, parent=None, tree=Tree()):
+def dict_to_tree(data, parent=None, tree=None):
+	
+	if tree is None:
+		tree = Tree()
+		
 	for key, value in data.items():
 		if key == "children":
 			for stuff in value:
@@ -27,4 +31,11 @@ def json_to_tree(json_file):
 	data = json_to_dict(json_file)
 	return dict_to_tree(data)
 
+def get_leaves(tree):
+	return [leaf.tag for leaf in tree.leaves()]
 
+def get_seed(tree):
+	return next(iter(tree.expand_tree(filter=lambda node: tree.depth(node) == 0)))
+
+def all_links(tree):
+	return [node.tag for node in tree.all_nodes()]

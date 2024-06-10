@@ -18,6 +18,8 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='crawler.log', filemode='w', encoding='utf-8', level=logging.INFO)
 
+
+
 class Crawler:
 	
 	def __init__(self, seed):
@@ -57,9 +59,6 @@ class Crawler:
 		for link in links:
 			if not self.tree.contains(link):
 				self.tree.create_node(link, link, parent_node)
-	
-	def get_seed():
-		return next(iter(self.tree.expand_tree(filter=lambda node: self.tree.depth(node) == 0)))
 			
 	def search(self, depth, include_relative, include_external, verbose):
 		
