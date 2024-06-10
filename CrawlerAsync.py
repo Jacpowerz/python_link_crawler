@@ -6,8 +6,7 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (110000, 110000))
 # The above two lines should fix 'too many open files' error
 
 def exception_handler(request, exception):
-	logger.critical(f'Fatal error occured. Error: -->  {exception}  <--')
-	print(f'Fatal error occured. Error: -->  {exception}  <--')
+	logger.error(f'grequests error occured. Error: -->  {exception}  <--')
 
 class CrawlerAsync(Crawler):
 	
