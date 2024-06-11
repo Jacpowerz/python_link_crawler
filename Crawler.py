@@ -18,8 +18,6 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='crawler.log', filemode='w', encoding='utf-8', level=logging.INFO)
 
-
-
 class Crawler:
 	
 	def __init__(self, seed):
@@ -78,11 +76,10 @@ class Crawler:
 		
 		for d in range(depth):
 			for child in floor:
+				if verbose: print(f"Pending Link: {child}\n")
 				childs = self.fetch_links(child, include_relative, include_external)
 				self.add_children(childs, child)
-				
-				if verbose:
-					print(f"Completed: {child}\nLinks added: {len(childs)}")
+				if verbose: print(f"\nLinks added: {len(childs)}")
 				
 				next_floor.extend(childs)
 			floor = next_floor
@@ -106,7 +103,7 @@ class Crawler:
 				f.write(self.tree.to_json())
 		elif mode == 2:
 			with(open(filename+".txt", "w")) as f:
-				for link in self.tree.all_nodes_itr():
+				for link in sorted(self.tree.all_nodes_itr()):
 					f.write(link.identifier + "\n")
 
 	def crawl(self, depth, include_relative=True, include_external=True, verbose=True):

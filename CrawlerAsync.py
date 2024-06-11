@@ -10,6 +10,10 @@ def exception_handler(request, exception):
 	print(f'Fatal error occured. Error: -->  {exception}  <--')
 
 class CrawlerAsync(Crawler):
+
+	def __init__(self, url, timeout=None):
+		super().__init__(url)
+		self.timeout = timeout
 	
 	def fetch_links(self, url, include_relative, include_external, response):
 
