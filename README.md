@@ -10,8 +10,8 @@
 
 ## Example
 
-Spiderman = CrawlerAsync(link)
-Spiderman.crawl(5,verbose=False, overkill_check=True)
+Spiderman = CrawlerAsync(link)\n
+Spiderman.crawl(5,verbose=False, overkill_check=True)\n
 Spiderman.save_tree(link_new, 2)
 
 This code creates the crawler object and searcehs the link to a depth of 5. verbose is whether it will print info to console and overkill_check is whether it monitors RAM 
