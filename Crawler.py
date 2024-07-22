@@ -33,7 +33,7 @@ class Crawler:
 		if verbose: print(self.tree.show(stdout=False))
 		return self.tree.show(stdout=False)
 		
-	def fetch_links(self, url, include_relative, include_external):
+	def fetch_links(self, url):
 		try:
 			response = requests.get(url)
 			soup = BeautifulSoup(response.text, 'html.parser')
@@ -44,11 +44,15 @@ class Crawler:
 				link = tag.get('href')
 				if link:
 					if link[-1] == "/": link = link[:-1]
-					if include_external and self.https_regex.match(link):
+					if self.https_regex.match(link):
 						links.add(link)
-					elif include_relative and self.relative_regex.match(link):
+					elif self.relative_regex.match(link):
 						links.add(url + link)
+		
+			if filter_func: links = filter(filter_func, links)
+				
 			return links
+		
 		except RequestException as e:
 			logger.info(f"Error occured: {e}")
 			return set()
@@ -57,11 +61,10 @@ class Crawler:
 		for link in links:
 			if not self.tree.contains(link):
 				self.tree.create_node(link, link, parent_node)
-			
-	def search(self, depth, include_relative, include_external, verbose):
-		
+	
+	def search_stage1(self):
 		leaves = deque(node for node in self.tree.leaves())
-		
+			
 		if len(leaves) == 1:
 			floor = [next(iter(leaves)).identifier]
 			next_floor = deque()
@@ -71,8 +74,14 @@ class Crawler:
 				level = self.tree.depth(leaf)
 				if level < min_depth:
 					min_depth = level
+			
 			floor = deque(node.identifier for node in leaves if self.tree.depth(node)==min_depth)
 			next_floor = deque(node.identifier for node in leaves if self.tree.depth(node)==min_depth+1)
+		return floor, next_floor
+		
+	def search(self, depth, verbose, function):
+		
+		floor, next_floor = self.search_stage1()
 		
 		for d in range(depth):
 			for child in floor:
@@ -85,7 +94,7 @@ class Crawler:
 			floor = next_floor
 			next_floor = deque()
 			
-	def generate_report(self, verbose=False, include_tree=True):
+	def generate_report(self, verbose=True, include_tree=True):
 		
 		self.report = ""
 		if include_tree: self.report += self.display_tree(False)
@@ -106,9 +115,9 @@ class Crawler:
 				for link in sorted(self.tree.all_nodes_itr()):
 					f.write(link.identifier + "\n")
 
-	def crawl(self, depth, include_relative=True, include_external=True, verbose=True):
+	def crawl(self, depth, verbose=True, filter_func=None, overkill_check=True):
 		try:
-			self.search(depth, include_relative, include_external, verbose)
+			self.search(depth, verbose, filter_func)
 		except KeyboardInterrupt:
 			print("You ended the crawl.\n")
 			logger.info("You ended the crawl.\n")

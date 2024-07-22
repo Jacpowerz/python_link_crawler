@@ -34,7 +34,7 @@ def json_to_tree(json_file):
 def get_leaves(tree):
 	return [leaf.tag for leaf in tree.leaves()]
 
-def get_seed(tree):
+def get_root(tree):
 	return next(iter(tree.expand_tree(filter=lambda node: tree.depth(node) == 0)))
 
 def all_links(tree):

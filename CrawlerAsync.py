@@ -1,20 +1,30 @@
 import grequests
-from Crawler import Crawler, BeautifulSoup, deque, logger
+from Crawler import Crawler, BeautifulSoup, deque, logger, Tree
 
 import resource
-resource.setrlimit(resource.RLIMIT_NOFILE, (110000, 110000))
+resource.setrlimit(resource.RLIMIT_NOFILE, (100_000, 100_000))
 # The above two lines should fix 'too many open files' error
+
+import psutil
+import signal
+import os
+from OverkillManager import OverkillManager
+import TreeHandler as th
 
 def exception_handler(request, exception):
 	logger.error(f'grequests error occured. Error: -->  {exception}  <--')
 
 class CrawlerAsync(Crawler):
 
-	def __init__(self, url, timeout=None):
+	def __init__(self, url, timeout=None, manager=None):
 		super().__init__(url)
 		self.timeout = timeout
+		if not manager: 
+			self.manager = OverkillManager(self)
+		else:
+			self.manager = manager
 	
-	def fetch_links(self, url, include_relative, include_external, response):
+	def fetch_links(self, url, response, filter_func):
 
 		soup = BeautifulSoup(response.text, 'html.parser')
 		a_tags = soup.find_all('a')
@@ -24,28 +34,31 @@ class CrawlerAsync(Crawler):
 			link = tag.get('href')
 			if link:
 				if link[-1] == "/": link = link[:-1]
-				if include_external and self.https_regex.match(link):
+				if self.https_regex.match(link):
 					links.add(link)
-				elif include_relative and self.relative_regex.match(link):
+				elif self.relative_regex.match(link):
 					links.add(url + link)
+		
+		if filter_func: links = filter(filter_func, links)
+			
 		return links
 		
-	def search(self, depth, include_relative, include_external, verbose):
+	def overkill_check(self, depth, cur_depth):
+		ram_usage = psutil.virtual_memory()[2]
+		ram_limit = 90
+		if ram_usage > ram_limit:
+			'''
+			self.manager.overkill_check = False
+			logger.info(f'Memory limit ({ram_limit}%) exceeded. Overkill enabled')
+			self.manager.run(depth-cur_depth, th.get_leaves(self.tree))
+			logger.info("Overkill manager finished search")
+			print("search complete")
+			'''
+			os.kill(os.getpid(), signal.SIGINT)
+
+	def search(self, depth, verbose, filter_func):
 		
-		leaves = deque(node for node in self.tree.leaves())
-		
-		
-		if len(leaves) == 1:
-			floor = [next(iter(leaves)).identifier]
-			next_floor = deque()
-		else:
-			min_depth = self.tree.depth()
-			for leaf in leaves:
-				level = self.tree.depth(leaf)
-				if level < min_depth:
-					min_depth = level
-			floor = deque(node.identifier for node in leaves if self.tree.depth(node)==min_depth)
-			next_floor = deque(node.identifier for node in leaves if self.tree.depth(node)==min_depth+1)
+		floor, next_floor = self.search_stage1()
 			
 		for d in range(depth):
 			pending_leaves = (grequests.get(u) for u in floor)
@@ -53,15 +66,23 @@ class CrawlerAsync(Crawler):
 			for index, child in responses:
 				child_url = floor[index]
 				try:
-					childs = self.fetch_links(child_url, include_relative, include_external, child)
+					childs = self.fetch_links(child_url, child, filter_func)
 					self.add_children(childs, child_url)
-				
-					if verbose:
-						print(f"Completed: {child_url}\nLinks added: {len(childs)}")
-				
+					
+					if verbose: print(f"Completed: {child_url}\nLinks added: {len(childs)}")
+					
 					next_floor.extend(childs)
+					
+					if self.manager.overkill_check: self.overkill_check(depth, self.tree.depth())
+						
 				except Exception as e:
 					logger.error(f'Could not add children for {child_url} due to Error: -->  {e}  <--')
 					
 			floor = next_floor
 			next_floor = deque()
+			
+	def clear_data(self, seed):
+		self.seed = seed
+		self.tree = Tree()
+		self.tree.create_node(seed, seed)
+		
