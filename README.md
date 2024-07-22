@@ -10,9 +10,9 @@
 
 ## Example
 
-Spiderman = CrawlerAsync(link)\n
-Spiderman.crawl(5,verbose=False, overkill_check=True)\n
-Spiderman.save_tree(link_new, 2)
+- Spiderman = CrawlerAsync(link)
+- Spiderman.crawl(5,verbose=False, overkill_check=True)
+- Spiderman.save_tree(link_new, 2)
 
 This code creates the crawler object and searcehs the link to a depth of 5. verbose is whether it will print info to console and overkill_check is whether it monitors RAM 
 and acts accordingly. As of now the code just stops execution, but it was made with the intention of offloading memory usage in exchange for more cpu intensive tasks. Does 
